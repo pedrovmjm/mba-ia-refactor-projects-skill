@@ -238,6 +238,154 @@ claude "/refactor-arch"
 
 > **Nota:** Este projeto já possui alguma separação de camadas, mas isso não significa que a arquitetura está adequada. A skill deve identificar tanto problemas de código (segurança, performance, qualidade) quanto oportunidades de melhoria arquitetural. Se houver mudanças estruturais necessárias, a skill deve propô-las e executá-las.
 
+## Análise Manual
+
+Esta seção registra a análise manual feita antes da criação da skill `refactor-arch`. Os achados abaixo foram usados como insumo para o catálogo de anti-patterns, guidelines MVC e playbook de refatoração.
+
+### Projeto 1 — `code-smells-project/`
+
+Stack detectada: Python + Flask + SQLite. Domínio: API de e-commerce com produtos, usuários, pedidos e relatório de vendas. Arquitetura inicial: monolítica, com rotas no `app.py`, regras de negócio e acesso a dados misturados entre `controllers.py` e `models.py`.
+
+#### Achados
+
+1. **[CRITICAL] Endpoint administrativo executa SQL arbitrário**
+   - Arquivo: `code-smells-project/app.py`
+   - Descrição: `/admin/query` recebe SQL no corpo da requisição e executa diretamente no banco.
+   - Impacto: permite leitura, alteração ou exclusão arbitrária dos dados.
+   - Recomendação: remover o endpoint ou substituí-lo por operações administrativas explícitas.
+
+2. **[CRITICAL] SQL Injection em consultas e mutações**
+   - Arquivo: `code-smells-project/models.py`
+   - Descrição: várias queries concatenam parâmetros em strings SQL.
+   - Impacto: entradas externas podem alterar a intenção da query.
+   - Recomendação: usar queries parametrizadas.
+
+3. **[HIGH] Credenciais e configuração sensível hardcoded**
+   - Arquivo: `code-smells-project/app.py`
+   - Descrição: `SECRET_KEY` e `DEBUG` são definidos diretamente no código.
+   - Impacto: dificulta ambientes seguros e pode expor comportamento de debug em produção.
+   - Recomendação: mover configuração para variáveis de ambiente.
+
+4. **[MEDIUM] Queries N+1 em pedidos**
+   - Arquivo: `code-smells-project/models.py`
+   - Descrição: a listagem de pedidos busca itens e produtos dentro de loops.
+   - Impacto: degrada performance conforme o volume de pedidos cresce.
+   - Recomendação: usar joins ou consultas agregadas por lote.
+
+5. **[MEDIUM] Validação e regras de negócio presas nos handlers**
+   - Arquivo: `code-smells-project/controllers.py`
+   - Descrição: validações de produto, pedido, status e notificações ficam nos controllers HTTP.
+   - Impacto: reduz testabilidade e aumenta duplicação.
+   - Recomendação: mover regras para controllers de domínio/services e deixar views finas.
+
+6. **[LOW] Magic values espalhados**
+   - Arquivo: `code-smells-project/controllers.py`
+   - Descrição: categorias e status válidos aparecem como listas literais.
+   - Impacto: aumenta chance de divergência em futuras mudanças.
+   - Recomendação: centralizar constantes de domínio.
+
+7. **[LOW] Logs com `print` e mensagens ruidosas**
+   - Arquivo: `code-smells-project/controllers.py`
+   - Descrição: efeitos colaterais e logs operacionais estão espalhados.
+   - Impacto: dificulta observabilidade consistente.
+   - Recomendação: isolar notificações/logs em service.
+
+### Projeto 2 — `ecommerce-api-legacy/`
+
+Stack detectada: Node.js + Express + SQLite. Domínio: LMS com checkout, cursos, matrículas, pagamentos e relatório financeiro. Arquitetura inicial: `AppManager` concentra banco, rotas, checkout, relatório, deleção e side effects.
+
+#### Achados
+
+1. **[CRITICAL] Segredos hardcoded**
+   - Arquivo: `ecommerce-api-legacy/src/utils.js`
+   - Descrição: usuário/senha de banco, chave de pagamento e SMTP ficam no código.
+   - Impacto: exposição direta de credenciais.
+   - Recomendação: mover para configuração via ambiente.
+
+2. **[CRITICAL] Criptografia de senha insegura**
+   - Arquivo: `ecommerce-api-legacy/src/utils.js`
+   - Descrição: `badCrypto` usa base64 repetido e truncado.
+   - Impacto: senhas podem ser revertidas ou quebradas facilmente.
+   - Recomendação: usar hash de senha do `crypto.scrypt`/bcrypt/argon2.
+
+3. **[HIGH] God Class**
+   - Arquivo: `ecommerce-api-legacy/src/AppManager.js`
+   - Descrição: a classe cria schema, registra rotas, processa checkout, escreve pagamentos e monta relatórios.
+   - Impacto: alto acoplamento e baixa testabilidade.
+   - Recomendação: separar em `models`, `controllers`, `routes`, `services` e `config`.
+
+4. **[MEDIUM] Callback nesting no checkout**
+   - Arquivo: `ecommerce-api-legacy/src/AppManager.js`
+   - Descrição: fluxo de checkout encadeia callbacks de banco e pagamento.
+   - Impacto: dificulta tratamento de erro e manutenção.
+   - Recomendação: criar camada de model com Promises e service de checkout.
+
+5. **[MEDIUM] Queries N+1 no relatório financeiro**
+   - Arquivo: `ecommerce-api-legacy/src/AppManager.js`
+   - Descrição: o relatório consulta matrículas, usuários e pagamentos em loops.
+   - Impacto: performance degrada rapidamente com volume.
+   - Recomendação: usar `JOIN` para montar o relatório em menos consultas.
+
+6. **[LOW] Nomes abreviados e pouco expressivos**
+   - Arquivo: `ecommerce-api-legacy/src/AppManager.js`
+   - Descrição: variáveis como `u`, `e`, `p`, `cid`, `cc`.
+   - Impacto: reduz legibilidade.
+   - Recomendação: usar nomes de domínio.
+
+7. **[LOW] Estado global mutável desnecessário**
+   - Arquivo: `ecommerce-api-legacy/src/utils.js`
+   - Descrição: `globalCache` e `totalRevenue` ficam exportados e mutáveis.
+   - Impacto: cria comportamento implícito entre requisições.
+   - Recomendação: encapsular cache em service ou remover se não for necessário.
+
+### Projeto 3 — `task-manager-api/`
+
+Stack detectada: Python + Flask + Flask-SQLAlchemy. Domínio: gerenciamento de tarefas, usuários, categorias e relatórios. Arquitetura inicial: possui models/routes/services, mas as rotas ainda concentram regras de negócio, serialização e consultas.
+
+#### Achados
+
+1. **[CRITICAL] Hash de senha com MD5**
+   - Arquivo: `task-manager-api/models/user.py`
+   - Descrição: senhas são armazenadas com `hashlib.md5`.
+   - Impacto: MD5 é inadequado para senha e vulnerável a ataques offline.
+   - Recomendação: usar `werkzeug.security.generate_password_hash` e `check_password_hash`.
+
+2. **[HIGH] Token falso no login**
+   - Arquivo: `task-manager-api/routes/user_routes.py`
+   - Descrição: o login retorna `fake-jwt-token-<id>`.
+   - Impacto: cria falsa sensação de autenticação.
+   - Recomendação: mover autenticação para service e deixar claro que o token é dev ou implementar JWT real.
+
+3. **[MEDIUM] Uso de API deprecated do SQLAlchemy**
+   - Arquivo: `task-manager-api/routes/task_routes.py`
+   - Descrição: uso recorrente de `Model.query.get(...)`.
+   - Impacto: gera dívida técnica e warnings em versões modernas.
+   - Recomendação: usar `db.session.get(Model, id)`.
+
+4. **[MEDIUM] Queries N+1 em listagens e relatórios**
+   - Arquivo: `task-manager-api/routes/task_routes.py`
+   - Descrição: busca usuário/categoria dentro da listagem de tasks.
+   - Impacto: aumenta o número de queries por requisição.
+   - Recomendação: usar relacionamentos/eager loading ou serialização no model.
+
+5. **[MEDIUM] Regras de negócio nas rotas**
+   - Arquivo: `task-manager-api/routes/task_routes.py`
+   - Descrição: validação de status, prioridade, datas e cálculo de atraso ficam nos handlers.
+   - Impacto: dificulta testes e reaproveitamento.
+   - Recomendação: criar controllers/services por domínio.
+
+6. **[LOW] Imports não utilizados**
+   - Arquivo: `task-manager-api/app.py`
+   - Descrição: imports como `os`, `sys` e `json` não são usados.
+   - Impacto: reduz clareza e sinaliza falta de limpeza.
+   - Recomendação: remover imports mortos.
+
+7. **[LOW] Magic values repetidos**
+   - Arquivo: `task-manager-api/routes/task_routes.py`
+   - Descrição: status e faixas de prioridade aparecem diretamente nas rotas.
+   - Impacto: dificulta alteração consistente.
+   - Recomendação: centralizar constantes/validadores.
+
 #### Validação
 
 Para cada projeto refatorado, valide o seguinte checklist:
