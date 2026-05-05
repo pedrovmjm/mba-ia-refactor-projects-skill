@@ -386,6 +386,308 @@ Stack detectada: Python + Flask + Flask-SQLAlchemy. Domínio: gerenciamento de t
    - Impacto: dificulta alteração consistente.
    - Recomendação: centralizar constantes/validadores.
 
+## Construção da Skill
+
+A skill escolhida foi implementada no formato do Claude Code, no caminho `.claude/skills/refactor-arch/`, porque o enunciado usa essa convenção como referência. A mesma pasta foi criada no projeto principal e copiada para os outros dois projetos para provar que a skill é reutilizável.
+
+### Decisões de design
+
+- `SKILL.md` ficou responsável apenas pelo fluxo operacional: Fase 1 de análise, Fase 2 de auditoria com pausa para confirmação e Fase 3 de refatoração/validação.
+- O conhecimento detalhado foi separado em arquivos Markdown dentro de `references/`, evitando acoplar a skill a uma stack específica.
+- A skill usa heurísticas de detecção em vez de regras hardcoded para um projeto: procura entrypoints, arquivos de dependência, rotas, modelos, tabelas, uso de banco, vocabulário de domínio e sinais de arquitetura.
+- A Fase 2 exige relatório estruturado com severidade, arquivo, linha, descrição, impacto e recomendação.
+- A Fase 3 orienta mudanças pequenas e preservação de contrato: endpoints, payloads e status codes originais devem continuar funcionando, salvo correções de segurança como desabilitar endpoint SQL arbitrário.
+
+### Arquivos de referência criados
+
+| Arquivo | Finalidade |
+|---|---|
+| `references/project-analysis.md` | Heurísticas para detectar linguagem, framework, banco, entrypoint, domínio e arquitetura atual. |
+| `references/anti-pattern-catalog.md` | Catálogo com sinais de detecção e severidades. |
+| `references/audit-report-template.md` | Template padronizado para os relatórios da Fase 2. |
+| `references/mvc-guidelines.md` | Regras da arquitetura alvo MVC e responsabilidade de cada camada. |
+| `references/refactoring-playbook.md` | Transformações concretas com exemplos antes/depois. |
+
+### Anti-patterns incluídos e motivação
+
+O catálogo contém 12 anti-patterns, cobrindo mais que o mínimo exigido de 8. Eles foram escolhidos porque apareceram diretamente nos três projetos ou representam riscos comuns em refatorações MVC:
+
+| Anti-pattern | Severidade | Por que foi incluído |
+|---|---|---|
+| Arbitrary Query/Command Endpoint | CRITICAL | Existia no e-commerce Flask e permite executar SQL arbitrário. |
+| Hardcoded Secrets/Credentials | CRITICAL | Apareceu em Flask e Node, expondo secrets e chaves. |
+| SQL/NoSQL Injection Risk | CRITICAL | O projeto Flask concatenava SQL com entrada externa. |
+| God Class/God Module | HIGH | O `AppManager` do Node concentrava quase toda a aplicação. |
+| Business Logic in Routes/Views | HIGH | Os três projetos tinham regras de negócio presas em handlers HTTP. |
+| Sensitive Data Exposure | HIGH | Healthcheck e serializers vazavam dados sensíveis. |
+| Deprecated API Usage | MEDIUM | O Task Manager usava `Model.query.get(...)`, API obsoleta no SQLAlchemy moderno. |
+| N+1 Queries | MEDIUM | Listagens e relatórios faziam queries dentro de loops. |
+| Missing Input Validation | MEDIUM | Alguns fluxos liam payloads diretamente ou validavam de forma incompleta. |
+| Global Mutable State | MEDIUM | O projeto Node exportava estado global mutável. |
+| Weak Cryptography/Password Storage | CRITICAL | Node usava pseudo-hash e Task Manager usava MD5. |
+| Magic Values and Poor Naming | LOW | Status, categorias e variáveis abreviadas prejudicavam manutenção. |
+
+### Como a skill permanece agnóstica de tecnologia
+
+- A análise de stack não depende de nomes dos projetos; usa sinais como `requirements.txt`, `package.json`, imports, framework, rotas e bibliotecas de banco.
+- As regras do catálogo são descritas por sintomas arquiteturais e de segurança, não por implementações exclusivas de Flask ou Express.
+- O playbook traz exemplos em Python e JavaScript, mas a transformação é conceitual: mover rota para controller, mover persistência para model/repository, extrair config, parametrizar queries e centralizar validações.
+- O padrão MVC alvo aceita variações naturais: em Flask, `views/routes.py`; em Express, `routes/`; em projetos parcialmente organizados, a skill preserva a estrutura existente e melhora as fronteiras.
+
+### Desafios encontrados
+
+- O `code-smells-project` tinha arquivos `models.py` e `controllers.py`; ao criar pacotes `models/` e `controllers/`, foi necessário remover os arquivos legados para evitar conflito de import.
+- No Node.js, o banco `sqlite3` usa callbacks. A solução foi criar helpers Promise-based em `models/database.js` e deixar os services mais lineares.
+- No Task Manager, a arquitetura já era parcialmente organizada. Em vez de refatorar tudo do zero, a solução foi preservar `models/` e `routes/`, adicionando `controllers/` e `config/`.
+- A correção de segurança do `/admin/query` muda o comportamento desse endpoint intencionalmente: ele permanece disponível, mas retorna 403.
+
+## Resultados
+
+### Resumo dos relatórios de auditoria
+
+| Projeto | Relatório | CRITICAL | HIGH | MEDIUM | LOW | Total |
+|---|---|---:|---:|---:|---:|---:|
+| `code-smells-project` | `code-smells-project/reports/audit-project-1.md` | 3 | 2 | 2 | 2 | 9 |
+| `ecommerce-api-legacy` | `ecommerce-api-legacy/reports/audit-project-2.md` | 2 | 2 | 3 | 2 | 9 |
+| `task-manager-api` | `task-manager-api/reports/audit-project-3.md` | 1 | 2 | 4 | 2 | 9 |
+
+### Comparação antes/depois
+
+#### `code-smells-project`
+
+Antes:
+
+```text
+app.py
+controllers.py
+models.py
+database.py
+```
+
+Depois:
+
+```text
+app.py
+config/settings.py
+controllers/
+models/
+views/routes.py
+services/
+middlewares/
+database.py
+reports/audit-project-1.md
+```
+
+Principais melhorias: SQL parametrizado, endpoint de SQL arbitrário desabilitado, healthcheck sanitizado, configuração via ambiente e separação MVC.
+
+#### `ecommerce-api-legacy`
+
+Antes:
+
+```text
+src/app.js
+src/AppManager.js
+src/utils.js
+```
+
+Depois:
+
+```text
+src/app.js
+src/config/settings.js
+src/controllers/
+src/models/
+src/routes/
+src/services/
+reports/audit-project-2.md
+```
+
+Principais melhorias: remoção da God Class, segredos movidos para config/env, hash de senha com `crypto.scrypt`, relatório com `JOIN` e checkout em service.
+
+#### `task-manager-api`
+
+Antes:
+
+```text
+app.py
+models/
+routes/
+services/
+utils/
+database.py
+```
+
+Depois:
+
+```text
+app.py
+config/settings.py
+controllers/
+models/
+routes/
+services/
+utils/
+database.py
+reports/audit-project-3.md
+```
+
+Principais melhorias: routes mais finas, controllers de domínio, `db.session.get(...)` no lugar de APIs deprecated, hash de senha com Werkzeug e config via ambiente.
+
+### Checklist de validação preenchido
+
+| Critério | `code-smells-project` | `ecommerce-api-legacy` | `task-manager-api` |
+|---|---|---|---|
+| Fase 1 detectou linguagem/framework | OK — Python/Flask | OK — Node.js/Express | OK — Python/Flask |
+| Domínio descrito corretamente | OK — e-commerce | OK — LMS checkout | OK — task manager |
+| Fase 2 gerou relatório no template | OK | OK | OK |
+| Fase 2 encontrou >= 5 findings | OK — 9 findings | OK — 9 findings | OK — 9 findings |
+| Fase 2 incluiu CRITICAL ou HIGH | OK | OK | OK |
+| Detecção de API deprecated | Não aplicável neste projeto | Não aplicável neste projeto | OK — SQLAlchemy `Model.query.get(...)` |
+| Skill copiada para o projeto | OK | OK | OK |
+| Estrutura MVC criada/melhorada | OK | OK | OK |
+| Config extraída para módulo próprio | OK | OK | OK |
+| Aplicação iniciou/importou sem erros | OK | OK | OK |
+| Endpoints representativos responderam | OK | OK | OK |
+
+### Logs de validação após refatoração
+
+#### `code-smells-project`
+
+```text
+/ 200
+/health 200
+/produtos 200
+/usuarios 200
+/pedidos 200
+/relatorios/vendas 200
+/admin/query 403
+```
+
+#### `ecommerce-api-legacy`
+
+```text
+GET /health 200
+GET /api/admin/financial-report 200
+POST /api/checkout 200
+DELETE /api/users/1 200
+```
+
+#### `task-manager-api`
+
+```text
+/ 200
+/health 200
+/tasks 200
+/tasks/stats 200
+/users 200
+/categories 200
+/reports/summary 200
+POST /users 201
+POST /login 200
+```
+
+### Observações sobre stacks diferentes
+
+- Em Flask procedural, a skill precisou transformar arquivos soltos em pacotes MVC.
+- Em Express, a skill precisou quebrar uma God Class e criar uma camada de banco assíncrona.
+- Em Flask parcialmente organizado, a skill atuou de forma incremental, mantendo a estrutura existente e corrigindo fronteiras, segurança e APIs deprecated.
+
+## Como Executar
+
+### Pré-requisitos
+
+- Claude Code instalado e configurado, ou ferramenta equivalente com suporte a custom skills.
+- Python 3 com `venv` para os projetos Flask.
+- Node.js e npm para o projeto Express.
+
+### Executar a skill
+
+Projeto 1:
+
+```bash
+cd code-smells-project
+claude "/refactor-arch"
+```
+
+Projeto 2:
+
+```bash
+cd ../ecommerce-api-legacy
+claude "/refactor-arch"
+```
+
+Projeto 3:
+
+```bash
+cd ../task-manager-api
+claude "/refactor-arch"
+```
+
+Durante a Fase 2, revise o relatório de auditoria e confirme a Fase 3 apenas depois de validar os achados.
+
+### Validar manualmente após a refatoração
+
+Projeto 1:
+
+```bash
+cd code-smells-project
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+python - <<'PY'
+from app import app
+client = app.test_client()
+for path in ['/', '/health', '/produtos', '/usuarios', '/pedidos', '/relatorios/vendas']:
+    print(path, client.get(path).status_code)
+print('/admin/query', client.post('/admin/query', json={'sql': 'select 1'}).status_code)
+PY
+```
+
+Projeto 2:
+
+```bash
+cd ecommerce-api-legacy
+npm install
+node - <<'NODE'
+const { createApp } = require('./src/app');
+const { app, db } = createApp();
+const server = app.listen(0, async () => {
+  const port = server.address().port;
+  async function request(method, path, body) {
+    const res = await fetch(`http://127.0.0.1:${port}${path}`, {
+      method,
+      headers: body ? {'content-type': 'application/json'} : undefined,
+      body: body ? JSON.stringify(body) : undefined
+    });
+    console.log(method, path, res.status);
+    await res.text();
+  }
+  await request('GET', '/health');
+  await request('GET', '/api/admin/financial-report');
+  await request('POST', '/api/checkout', {usr:'Ana', eml:'ana@example.com', pwd:'123456', c_id:1, card:'4111111111111111'});
+  server.close();
+  db.close();
+});
+NODE
+```
+
+Projeto 3:
+
+```bash
+cd task-manager-api
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+python - <<'PY'
+from app import app
+client = app.test_client()
+for path in ['/', '/health', '/tasks', '/tasks/stats', '/users', '/categories', '/reports/summary']:
+    print(path, client.get(path).status_code)
+print('POST /users', client.post('/users', json={'name':'Ana','email':'ana@example.com','password':'1234'}).status_code)
+print('POST /login', client.post('/login', json={'email':'ana@example.com','password':'1234'}).status_code)
+PY
+```
+
 #### Validação
 
 Para cada projeto refatorado, valide o seguinte checklist:
