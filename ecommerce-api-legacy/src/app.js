@@ -1,14 +1,27 @@
 const express = require('express');
-const AppManager = require('./AppManager');
-const { config } = require('./utils');
+const { config } = require('./config/settings');
+const { createDatabase } = require('./models/database');
+const { createRoutes } = require('./routes');
 
-const app = express();
-app.use(express.json());
+function createApp() {
+    const app = express();
+    const db = createDatabase();
 
-const manager = new AppManager();
-manager.initDb();
-manager.setupRoutes(app);
+    app.use(express.json());
+    app.use('/api', createRoutes(db));
 
-app.listen(config.port, () => {
-    console.log(`Frankenstein LMS rodando na porta ${config.port}...`);
-});
+    app.get('/health', (req, res) => {
+        res.json({ status: 'ok', database: 'connected', version: '1.0.0' });
+    });
+
+    return { app, db };
+}
+
+if (require.main === module) {
+    const { app } = createApp();
+    app.listen(config.port, () => {
+        console.log(`LMS API rodando na porta ${config.port}`);
+    });
+}
+
+module.exports = { createApp };
