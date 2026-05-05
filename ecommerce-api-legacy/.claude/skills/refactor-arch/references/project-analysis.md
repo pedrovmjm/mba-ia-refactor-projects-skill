@@ -1,46 +1,46 @@
-# Project Analysis Heuristics
+# Heurísticas de análise do projeto
 
-## Stack Detection
+## Detecção da stack
 
-- Python: `requirements.txt`, `pyproject.toml`, `.py` files, imports such as `flask`, `fastapi`, `django`, `sqlalchemy`, `sqlite3`.
-- Node.js: `package.json`, `package-lock.json`, `.js/.ts` files, imports such as `express`, `koa`, `fastify`, `sequelize`, `sqlite3`.
-- Database: search for `sqlite3`, `SQLAlchemy`, `mongoose`, `sequelize`, `pg`, `mysql`, `CREATE TABLE`, migrations, ORM models.
-- Entrypoint: Flask `app = Flask(__name__)`, Express `const app = express()`, package scripts, `if __name__ == "__main__"`.
+- Python: `requirements.txt`, `pyproject.toml`, arquivos `.py`, imports como `flask`, `fastapi`, `django`, `sqlalchemy`, `sqlite3`.
+- Node.js: `package.json`, `package-lock.json`, arquivos `.js/.ts`, imports como `express`, `koa`, `fastify`, `sequelize`, `sqlite3`.
+- Banco de dados: procure por `sqlite3`, `SQLAlchemy`, `mongoose`, `sequelize`, `pg`, `mysql`, `CREATE TABLE`, migrations, modelos de ORM.
+- Ponto de entrada: Flask `app = Flask(__name__)`, Express `const app = express()`, scripts do pacote, `if __name__ == "__main__"`.
 
-## Architecture Mapping
+## Mapeamento da arquitetura
 
-Record:
+Registre:
 
-- Route definitions and URL prefixes.
-- Persistence access sites.
-- Business logic sites.
-- Serialization/response formatting sites.
-- Config and secret sources.
-- Cross-cutting concerns: auth, validation, errors, logging, notifications, cache.
+- Definições de rotas e prefixos de URL.
+- Pontos de acesso a persistência.
+- Pontos com lógica de negócio.
+- Pontos de serialização/formatação de resposta.
+- Fontes de configuração e segredos.
+- Preocupações transversais: auth, validação, erros, logging, notificações, cache.
 
-## Domain Detection
+## Detecção do domínio
 
-Infer the domain from endpoint nouns, table/model names, README vocabulary, and seed data. Examples:
+Infira o domínio a partir de substantivos dos endpoints, nomes de tabelas/modelos, vocabulário do README e dados de seed. Exemplos:
 
 - E-commerce: products, users, orders, order items, inventory, sales reports.
-- LMS checkout: courses, enrollments, payments, users, financial reports.
-- Task manager: tasks, categories, users, priorities, due dates, reports.
+- Checkout de LMS: courses, enrollments, payments, users, financial reports.
+- Gerenciador de tarefas: tasks, categories, users, priorities, due dates, reports.
 
-## Phase 1 Output
+## Saída da Fase 1
 
-Print:
+Imprima:
 
 ```text
 ================================
-PHASE 1: PROJECT ANALYSIS
+FASE 1: ANÁLISE DO PROJETO
 ================================
-Language:
+Linguagem:
 Framework:
-Dependencies:
-Domain:
-Architecture:
-Source files:
-DB tables/models:
-Entrypoint:
+Dependências:
+Domínio:
+Arquitetura:
+Arquivos-fonte:
+Tabelas/modelos de BD:
+Ponto de entrada:
 ================================
 ```

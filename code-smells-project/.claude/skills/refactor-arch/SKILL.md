@@ -1,58 +1,58 @@
 ---
 name: refactor-arch
-description: Analyze backend projects, audit architecture/security/code smells, and refactor them into MVC while preserving behavior across Python/Flask, Node.js/Express, and similar stacks.
+description: Analise projetos backend, audite arquitetura/segurança/code smells e refatore para MVC preservando o comportamento em Python/Flask, Node.js/Express e stacks similares.
 ---
 
 # Refactor Arch
 
-Use this skill when the user asks to analyze, audit, or refactor a backend project toward MVC architecture.
+Use esta skill quando o usuário pedir para analisar, auditar ou refatorar um projeto backend em direção a uma arquitetura MVC.
 
-## References
+## Referências
 
-Load only the files needed for the current phase:
+Carregue apenas os arquivos necessários para a fase atual:
 
-- `references/project-analysis.md`: stack, framework, database, domain, and architecture detection heuristics.
-- `references/anti-pattern-catalog.md`: anti-patterns, detection signals, and severity rules.
-- `references/audit-report-template.md`: required Phase 2 report shape.
-- `references/mvc-guidelines.md`: target MVC responsibilities and boundaries.
-- `references/refactoring-playbook.md`: concrete transformations with before/after examples.
+- `references/project-analysis.md`: heurísticas para detectar stack, framework, banco de dados, domínio e arquitetura.
+- `references/anti-pattern-catalog.md`: antipadrões, sinais de detecção e regras de severidade.
+- `references/audit-report-template.md`: formato obrigatório do relatório da Fase 2.
+- `references/mvc-guidelines.md`: responsabilidades e limites alvo em MVC.
+- `references/refactoring-playbook.md`: transformações concretas com exemplos antes/depois.
 
-## Workflow
+## Fluxo de trabalho
 
-### Phase 1 - Project Analysis
+### Fase 1 - Análise do projeto
 
-1. Inspect files with fast search (`rg --files`, then targeted reads).
-2. Detect language, framework, package manager, database, routing style, domain vocabulary, entrypoint, and current architecture.
-3. Print a concise summary:
-   - language and framework
-   - dependencies
-   - domain
-   - architecture
-   - source files analyzed
-   - detected persistence objects/tables/models
-4. Do not modify files in this phase.
+1. Inspecione os arquivos com busca rápida (`rg --files`, depois leituras direcionadas).
+2. Detecte linguagem, framework, gerenciador de pacotes, banco de dados, estilo de rotas, vocabulário de domínio, ponto de entrada e arquitetura atual.
+3. Imprima um resumo conciso:
+   - linguagem e framework
+   - dependências
+   - domínio
+   - arquitetura
+   - arquivos-fonte analisados
+   - objetos/tabelas/modelos de persistência detectados
+4. Não modifique arquivos nesta fase.
 
-### Phase 2 - Audit
+### Fase 2 - Auditoria
 
-1. Read `anti-pattern-catalog.md` and compare the codebase against it.
-2. Produce a structured audit report using `audit-report-template.md`.
-3. Each finding must include severity, title, file, exact line or line range, description, impact, and recommendation.
-4. Include at least five findings when present, prioritizing CRITICAL/HIGH architecture and security issues.
-5. Save the report when the user or assignment requests it.
-6. Pause before changing files and ask for confirmation. If the user has already explicitly authorized implementation, treat that as confirmation and continue.
+1. Leia `anti-pattern-catalog.md` e compare a codebase com ele.
+2. Produza um relatório de auditoria estruturado usando `audit-report-template.md`.
+3. Cada achado deve incluir severidade, título, arquivo, linha exata ou intervalo de linhas, descrição, impacto e recomendação.
+4. Inclua pelo menos cinco achados quando existirem, priorizando problemas de arquitetura e segurança CRITICAL/HIGH.
+5. Salve o relatório quando o usuário ou a atividade solicitar.
+6. Pause antes de alterar arquivos e peça confirmação. Se o usuário já autorizou explicitamente a implementação, trate isso como confirmação e continue.
 
-### Phase 3 - Refactoring
+### Fase 3 - Refatoração
 
-1. Read `mvc-guidelines.md` and `refactoring-playbook.md`.
-2. Refactor in small, behavior-preserving steps:
-   - models/repositories own persistence and domain data access
-   - controllers own orchestration and business decisions
-   - views/routes own HTTP parsing and response formatting
-   - config/settings own environment and secrets
-   - services own external side effects and reusable domain operations
-3. Preserve public endpoints, request/response shapes, and expected status codes unless fixing a documented security flaw requires removing unsafe behavior.
-4. Validate:
-   - application imports/boots without errors
-   - representative endpoints respond
-   - audit findings are addressed or explicitly accepted as residual risk
-5. Print final structure and validation results.
+1. Leia `mvc-guidelines.md` e `refactoring-playbook.md`.
+2. Refatore em passos pequenos, preservando comportamento:
+   - models/repositories são responsáveis pela persistência e pelo acesso a dados de domínio
+   - controllers são responsáveis pela orquestração e pelas decisões de negócio
+   - views/routes são responsáveis pelo parsing HTTP e pela formatação das respostas
+   - config/settings são responsáveis pelo ambiente e pelos segredos
+   - services são responsáveis por efeitos colaterais externos e operações reutilizáveis de domínio
+3. Preserve endpoints públicos, formatos de request/response e status codes esperados, salvo quando corrigir uma falha de segurança documentada exigir remover comportamento inseguro.
+4. Valide:
+   - a aplicação importa/inicializa sem erros
+   - endpoints representativos respondem
+   - achados da auditoria foram corrigidos ou explicitamente aceitos como risco residual
+5. Imprima a estrutura final e os resultados da validação.

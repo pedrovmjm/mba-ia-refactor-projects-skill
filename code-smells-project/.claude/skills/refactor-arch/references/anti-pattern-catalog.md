@@ -1,58 +1,58 @@
-# Anti-pattern Catalog
+# Catálogo de antipadrões
 
-Use this severity scale:
+Use esta escala de severidade:
 
-- CRITICAL: security exposure, arbitrary code/query execution, severe architecture collapse, or production-breaking risk.
-- HIGH: strong MVC/SOLID violation, high coupling, hard-to-test business logic, unsafe credential handling.
-- MEDIUM: duplicated logic, N+1 queries, missing validation, weak error handling, performance risk.
-- LOW: naming, magic values, noisy imports/logs, readability issues.
+- CRITICAL: exposição de segurança, execução arbitrária de código/query, colapso severo de arquitetura ou risco de quebrar produção.
+- HIGH: violação forte de MVC/SOLID, alto acoplamento, lógica de negócio difícil de testar, tratamento inseguro de credenciais.
+- MEDIUM: lógica duplicada, queries N+1, validação ausente, tratamento de erros fraco, risco de performance.
+- LOW: nomes, valores mágicos, imports/logs ruidosos, problemas de legibilidade.
 
-## Required Anti-patterns
+## Antipadrões obrigatórios
 
-1. **Arbitrary Query/Command Endpoint** (CRITICAL)
-   - Signals: routes accepting raw SQL, shell commands, `eval`, `exec`.
-   - Recommend: remove endpoint or restrict to explicit admin operations with parameterized repository methods.
+1. **Endpoint de query/comando arbitrário** (CRITICAL)
+   - Sinais: rotas que aceitam SQL bruto, comandos de shell, `eval`, `exec`.
+   - Recomende: remover o endpoint ou restringi-lo a operações administrativas explícitas com métodos de repositório parametrizados.
 
-2. **Hardcoded Secrets/Credentials** (CRITICAL)
-   - Signals: `SECRET_KEY = "..."`, API keys, passwords, live tokens in source.
-   - Recommend: environment-based config with safe defaults for local development only.
+2. **Segredos/credenciais embutidos no código** (CRITICAL)
+   - Sinais: `SECRET_KEY = "..."`, chaves de API, senhas, tokens vivos no código-fonte.
+   - Recomende: configuração baseada em ambiente, com defaults seguros apenas para desenvolvimento local.
 
-3. **SQL/NoSQL Injection Risk** (CRITICAL)
-   - Signals: string-concatenated SQL, template query interpolation, unsanitized filters.
-   - Recommend: parameterized queries/ORM query builders.
+3. **Risco de injeção SQL/NoSQL** (CRITICAL)
+   - Sinais: SQL concatenado por string, interpolação de query por template, filtros sem sanitização.
+   - Recomende: queries parametrizadas/query builders de ORM.
 
 4. **God Class/God Module** (HIGH)
-   - Signals: one class/file owns routes, DB, business rules, validation, reporting, side effects.
-   - Recommend: split into routes/views, controllers, models/repositories, services.
+   - Sinais: uma classe/arquivo é responsável por rotas, BD, regras de negócio, validação, relatórios e efeitos colaterais.
+   - Recomende: dividir em routes/views, controllers, models/repositories e services.
 
-5. **Business Logic in Routes/Views** (HIGH)
-   - Signals: HTTP handlers calculating totals, payment decisions, overdue logic, validation branches.
-   - Recommend: move orchestration to controllers/services.
+5. **Lógica de negócio em routes/views** (HIGH)
+   - Sinais: handlers HTTP calculando totais, decisões de pagamento, lógica de atraso, ramos de validação.
+   - Recomende: mover a orquestração para controllers/services.
 
-6. **Sensitive Data Exposure** (HIGH)
-   - Signals: API returns passwords, secret keys, debug flags, card data, stack traces.
-   - Recommend: explicit serializers and sanitized health/debug responses.
+6. **Exposição de dados sensíveis** (HIGH)
+   - Sinais: API retorna senhas, chaves secretas, flags de debug, dados de cartão, stack traces.
+   - Recomende: serializers explícitos e respostas de health/debug sanitizadas.
 
-7. **Deprecated API Usage** (MEDIUM)
-   - Signals: APIs deprecated by framework/runtime, such as SQLAlchemy `Model.query.get()` in modern SQLAlchemy.
-   - Recommend: use the modern equivalent, e.g. `db.session.get(Model, id)`.
+7. **Uso de API obsoleta** (MEDIUM)
+   - Sinais: APIs obsoletas pelo framework/runtime, como `Model.query.get()` do SQLAlchemy em versões modernas.
+   - Recomende: usar o equivalente moderno, por exemplo `db.session.get(Model, id)`.
 
-8. **N+1 Queries** (MEDIUM)
-   - Signals: queries inside loops for related records.
-   - Recommend: joins/eager loading/batch queries.
+8. **Queries N+1** (MEDIUM)
+   - Sinais: queries dentro de loops para registros relacionados.
+   - Recomende: joins/eager loading/queries em lote.
 
-9. **Missing Input Validation** (MEDIUM)
-   - Signals: direct body access with no type/range/schema checks.
-   - Recommend: validation helpers/schemas close to request boundary.
+9. **Validação de entrada ausente** (MEDIUM)
+   - Sinais: acesso direto ao body sem checagens de tipo/intervalo/schema.
+   - Recomende: helpers/schemas de validação próximos da fronteira da request.
 
-10. **Global Mutable State** (MEDIUM)
-    - Signals: module-level caches/counters/shared DB connection mutated across requests.
-    - Recommend: dependency injection, request-scoped DB, explicit cache service.
+10. **Estado mutável global** (MEDIUM)
+    - Sinais: caches/contadores/conexão de BD compartilhada em nível de módulo e mutada entre requests.
+    - Recomende: injeção de dependência, BD com escopo de request, serviço de cache explícito.
 
-11. **Weak Cryptography/Password Storage** (CRITICAL)
-    - Signals: MD5/base64/custom hashes/plaintext passwords.
-    - Recommend: Werkzeug/PBKDF2/bcrypt/argon2 password hashing.
+11. **Criptografia/armazenamento de senha fracos** (CRITICAL)
+    - Sinais: MD5/base64/hashes customizados/senhas em texto puro.
+    - Recomende: hash de senha com Werkzeug/PBKDF2/bcrypt/argon2.
 
-12. **Magic Values and Poor Naming** (LOW)
-    - Signals: unnamed thresholds, fake tokens, abbreviated variables, duplicated status/category lists.
-    - Recommend: constants and descriptive names.
+12. **Valores mágicos e nomes ruins** (LOW)
+    - Sinais: limites sem nome, tokens falsos, variáveis abreviadas, listas duplicadas de status/categorias.
+    - Recomende: constantes e nomes descritivos.

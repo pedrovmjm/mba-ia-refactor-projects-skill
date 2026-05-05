@@ -1,46 +1,46 @@
-# Audit Report Template
+# Template de relatório de auditoria
 
 ```markdown
-# Architecture Audit Report - <project>
+# Relatório de auditoria de arquitetura - <project>
 
-## Phase 1 - Project Analysis
+## Fase 1 - Análise do projeto
 
-- Language:
+- Linguagem:
 - Framework:
-- Dependencies:
-- Domain:
-- Architecture:
-- Source files analyzed:
-- DB tables/models:
+- Dependências:
+- Domínio:
+- Arquitetura:
+- Arquivos-fonte analisados:
+- Tabelas/modelos de BD:
 
-## Summary
+## Resumo
 
-| Severity | Count |
+| Severidade | Quantidade |
 |---|---:|
 | CRITICAL | 0 |
 | HIGH | 0 |
 | MEDIUM | 0 |
 | LOW | 0 |
 
-## Findings
+## Achados
 
-### [<SEVERITY>] <Finding title>
+### [<SEVERIDADE>] <Título do achado>
 
-- File: `<path>:<line or range>`
-- Description:
-- Impact:
-- Recommendation:
+- Arquivo: `<path>:<linha ou intervalo>`
+- Descrição:
+- Impacto:
+- Recomendação:
 
-## Phase 3 Validation Plan
+## Plano de validação da Fase 3
 
-- Boot/import check:
-- Endpoint checks:
-- Residual risk:
+- Checagem de boot/import:
+- Checagens de endpoints:
+- Risco residual:
 ```
 
-Rules:
+Regras:
 
-- Findings must be sorted by severity, then expected impact.
-- Use exact line numbers from the current checkout.
-- Avoid vague locations such as "multiple files" unless each important file is listed.
-- Mention if a finding maps to a deprecated API.
+- Achados devem ser ordenados por severidade e depois por impacto esperado.
+- Use números de linha exatos do checkout atual.
+- Evite localizações vagas como "múltiplos arquivos", salvo quando cada arquivo importante estiver listado.
+- Mencione se um achado corresponde a uma API obsoleta.

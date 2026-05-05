@@ -1,141 +1,141 @@
-# Refactoring Playbook
+# Playbook de refatoração
 
-## 1. Concatenated SQL to Parameterized Query
+## 1. SQL concatenado para query parametrizada
 
-Before:
+Antes:
 
 ```python
 cursor.execute("SELECT * FROM users WHERE email = '" + email + "'")
 ```
 
-After:
+Depois:
 
 ```python
 cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
 ```
 
-## 2. Hardcoded Secret to Settings
+## 2. Segredo embutido no código para settings
 
-Before:
+Antes:
 
 ```python
 app.config["SECRET_KEY"] = "secret"
 ```
 
-After:
+Depois:
 
 ```python
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret")
 ```
 
-## 3. Route Logic to Controller
+## 3. Lógica da rota para controller
 
-Before:
+Antes:
 
 ```javascript
 app.post('/checkout', (req, res) => { /* validate, pay, persist */ });
 ```
 
-After:
+Depois:
 
 ```javascript
 router.post('/checkout', checkoutController.checkout);
 ```
 
-## 4. God Class to MVC Modules
+## 4. God Class para módulos MVC
 
-Before:
+Antes:
 
 ```javascript
 class AppManager { initDb() {} setupRoutes(app) {} checkout() {} report() {} }
 ```
 
-After:
+Depois:
 
 ```text
 config/ + models/ + services/ + controllers/ + routes/
 ```
 
-## 5. Repeated Serialization to Model Method
+## 5. Serialização repetida para método do model
 
-Before:
+Antes:
 
 ```python
 data = {"id": task.id, "title": task.title}
 ```
 
-After:
+Depois:
 
 ```python
 data = task.to_dict()
 ```
 
-## 6. Queries in Loop to Join/Eager Load
+## 6. Queries em loop para join/eager load
 
-Before:
+Antes:
 
 ```python
 for task in tasks:
     user = User.query.get(task.user_id)
 ```
 
-After:
+Depois:
 
 ```python
 tasks = Task.query.options(joinedload(Task.user)).all()
 ```
 
-## 7. Weak Hash to Framework Hash
+## 7. Hash fraco para hash do framework
 
-Before:
+Antes:
 
 ```python
 hashlib.md5(password.encode()).hexdigest()
 ```
 
-After:
+Depois:
 
 ```python
 generate_password_hash(password)
 ```
 
-## 8. Deprecated API to Modern API
+## 8. API obsoleta para API moderna
 
-Before:
+Antes:
 
 ```python
 Task.query.get(task_id)
 ```
 
-After:
+Depois:
 
 ```python
 db.session.get(Task, task_id)
 ```
 
-## 9. Unsafe Admin Endpoint to Explicit Operation
+## 9. Endpoint admin inseguro para operação explícita
 
-Before:
+Antes:
 
 ```python
 cursor.execute(request.json["sql"])
 ```
 
-After:
+Depois:
 
 ```python
 return jsonify({"error": "Disabled"}), 403
 ```
 
-## 10. Nested Callbacks to Services
+## 10. Callbacks aninhados para services
 
-Before:
+Antes:
 
 ```javascript
 db.get(sql, params, () => db.run(sql2, params2, () => res.json(...)));
 ```
 
-After:
+Depois:
 
 ```javascript
 const result = await checkoutService.checkout(payload);
